@@ -34,6 +34,8 @@ class HomeScreenState extends State<HomeScreen> {
   String result = '';
 
   final numberFormat = NumberFormat("#,##0", "en_US");
+  bool showHusbandField = true;
+  bool showWifeField = true;
 
   void showResultDialog(String resultText) {
     showDialog(
@@ -74,24 +76,32 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   void calculateInheritance() {
     if (formKey.currentState!.validate() && selectedGender != null) {
       setState(() {
         try {
           // Parse totalAmount as double
-          double originalTotalAmount = double.parse(amountController.text.replaceAll(',', ''));
+          double originalTotalAmount =
+              double.parse(amountController.text.replaceAll(',', ''));
           double remainingAmount = originalTotalAmount;
 
           // Parse other inputs as doubles with default value of 0.0
-          num boys = num.parse(boysController.text.isEmpty ? '0' : boysController.text);
-          num girls = num.parse(girlsController.text.isEmpty ? '0' : girlsController.text);
-          num father = num.parse(fatherController.text.isEmpty ? '0' : fatherController.text);
-          num mother = num.parse(motherController.text.isEmpty ? '0' : motherController.text);
-          num husband = num.parse(husbandController.text.isEmpty ? '0' : husbandController.text);
-          num wife = num.parse(wifeController.text.isEmpty ? '0' : wifeController.text);
-          num brothers = num.parse(brothersController.text.isEmpty ? '0' : brothersController.text);
-          num sisters = num.parse(sistersController.text.isEmpty ? '0' : sistersController.text);
+          num boys = num.parse(
+              boysController.text.isEmpty ? '0' : boysController.text);
+          num girls = num.parse(
+              girlsController.text.isEmpty ? '0' : girlsController.text);
+          num father = num.parse(
+              fatherController.text.isEmpty ? '0' : fatherController.text);
+          num mother = num.parse(
+              motherController.text.isEmpty ? '0' : motherController.text);
+          num husband = num.parse(
+              husbandController.text.isEmpty ? '0' : husbandController.text);
+          num wife = num.parse(
+              wifeController.text.isEmpty ? '0' : wifeController.text);
+          num brothers = num.parse(
+              brothersController.text.isEmpty ? '0' : brothersController.text);
+          num sisters = num.parse(
+              sistersController.text.isEmpty ? '0' : sistersController.text);
 
           // Variables to hold shares (using num for flexibility)
           num boyShare = 0;
@@ -125,9 +135,21 @@ class HomeScreenState extends State<HomeScreen> {
               remainingAmount -= motherShare;
             }
             // توزيع الباقي على الأخوة إذا لم يكن هناك أولاد أو بنات أو زوجة
-            if (boys == 0 && girls == 0 && wife == 0) {
+            if (boys == 0 &&
+                girls == 0 &&
+                wife == 0 &&
+                brothers > 0 &&
+                sisters > 0) {
               brotherShare = remainingAmount / (brothers + 1);
               sisterShare = remainingAmount / (sisters + 1);
+            }
+
+            if (boys == 0 &&
+                girls == 0 &&
+                wife > 0 &&
+                brothers == 0 &&
+                sisters == 0) {
+              wifeShare += remainingAmount;
             }
           } else if (selectedGender == 'أنثى') {
             // حصة الزوج
@@ -149,19 +171,35 @@ class HomeScreenState extends State<HomeScreen> {
               motherShare = remainingAmount * 0.1667; // السدس
               remainingAmount -= motherShare;
             }
-            // توزيع الباقي على الأخوات إذا لم يكن هناك أولاد أو بنات أو زوج
-            if (boys == 0 && girls == 0 && husband == 0) {
+            if(boys == 0 && girls == 0 && husband > 0 ){
+              husbandShare = remainingAmount ;
+              husbandShare -= remainingAmount;
+              if(brothers > 0 ){
+              brotherShare = remainingAmount *0.3333;}
+              if( sisters > 0){
+              sisterShare = remainingAmount * 0.1667 ;
+            }
+              if(husband > 0 && brothers == 0 && sisters == 0){
+                husbandShare = remainingAmount ;
+              }
+            }
+
+            if (boys > 0 && girls > 0 && husband > 0) {
               sisterShare = 0; // عدم تخصيص حصة للأخوات
               brotherShare = 0; // عدم تخصيص حصة للأخوة
-            } else {
-              sisterShare = remainingAmount / (sisters + 1);
-              brotherShare = remainingAmount / (brothers + 1);
-            }}
-
+            } else if (boys == 0 && girls == 0 && husband == 0) {
+              sisterShare -= remainingAmount; // عدم تخصيص حصة للأخوات
+              brotherShare -= remainingAmount; // عدم تخصيص حصة للأخوة
+            }
+            if (boys == 0 && girls == 0 && husband > 0) {
+              husbandShare += remainingAmount;
+            }
+          }
           // Calculate total shares
-          num totalShares = boys * 2 + girls + brothers * 2 + sisters;
+          num totalShares =
+              boys * 2 + girls + (boys == 0 ? brothers * 2 + sisters : 0);
 
-          // Distribute remaining amount among children and siblings
+          // توزيع المبلغ المتبقي بين الأطفال والأشقاء
           if (totalShares > 0) {
             if (boys > 0) {
               boyShare = (remainingAmount * 2) / totalShares;
@@ -169,24 +207,57 @@ class HomeScreenState extends State<HomeScreen> {
             if (girls > 0) {
               girlShare = remainingAmount / totalShares;
             }
-            if (brothers > 0) {
+            if (brothers > 0 && boys == 0) {
+              // شرط جديد
               brotherShare = (remainingAmount * 2) / totalShares;
             }
-            if (sisters > 0) {
+            if (sisters > 0 && boys == 0) {
+              // شرط جديد
               sisterShare = remainingAmount / totalShares;
+            }
+            if (girls > 0 && boys == 0) {
+              girlShare = remainingAmount * 0.5; // نصف التركة للبنت الواحدة
+              remainingAmount -= girlShare;
+
+              // حساب حصص الأخوة والأخوات فقط إذا تم إدخال قيم لهم
+              num siblingShares = (brothers > 0 ? brothers * 2 : 0) +
+                  (sisters > 0 ? sisters : 0);
+
+              if (siblingShares > 0) {
+                if (brothers > 0) {
+                  brotherShare = (remainingAmount * 2) /
+                      siblingShares; // توزيع النصف الآخر على الأخوة
+                }
+                if (sisters > 0) {
+                  sisterShare = remainingAmount /
+                      siblingShares; // توزيع النصف الآخر على الأخوات
+                }
+              }
             }
           }
 
           // Prepare result text
           List<String> resultList = [];
-          if (boyShare > 0) resultList.add('حصة كل ولد: ${numberFormat.format(boyShare)}');
-          if (girlShare > 0) resultList.add('حصة كل بنت: ${numberFormat.format(girlShare)}');
-          if (fatherShare > 0) resultList.add('حصة الأب: ${numberFormat.format(fatherShare)}');
-          if (motherShare > 0) resultList.add('حصة الأم: ${numberFormat.format(motherShare)}');
-          if (husbandShare > 0) resultList.add('حصة الزوج: ${numberFormat.format(husbandShare)}');
-          if (wifeShare > 0) resultList.add('حصة الزوجة: ${numberFormat.format(wifeShare)}');
-          if (brotherShare > 0) resultList.add('حصة كل أخ: ${numberFormat.format(brotherShare)}');
-          if (sisterShare > 0) resultList.add('حصة كل أخت: ${numberFormat.format(sisterShare)}');
+          if (boyShare > 0)
+            resultList.add('حصة كل ولد : ${(boyShare.toStringAsFixed(1))}');
+          if (girlShare > 0)
+            resultList.add('حصة كل بنت : ${girlShare.toStringAsFixed(1)}');
+          if (fatherShare > 0)
+            resultList
+                .add('حصة أب المتوفى : ${fatherShare.toStringAsFixed(1)}');
+          if (motherShare > 0)
+            resultList
+                .add('حصة أم المتوفى : ${motherShare.toStringAsFixed(1)}');
+          if (husbandShare > 0)
+            resultList.add('حصة الزوج : ${husbandShare.toStringAsFixed(1)}');
+          if (wifeShare > 0)
+            resultList.add('حصة الزوجة : ${wifeShare.toStringAsFixed(1)}');
+          if (brotherShare > 0)
+            resultList
+                .add('حصة كل أخ للمتوفى : ${brotherShare.toStringAsFixed(1)}');
+          if (sisterShare > 0)
+            resultList
+                .add('حصة كل أخت للمتوفى : ${sisterShare.toStringAsFixed(1)}');
 
           String result = resultList.join('\n');
 
@@ -199,368 +270,387 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Container(
-        decoration: const BoxDecoration(
-        image: DecorationImage(
-        image: AssetImage("assets/images/pattern.png"),fit: BoxFit.cover,
-        ),
-    color: Colors.transparent),
-    child: Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(elevation: 0,
+      decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/pattern.png"),
+            fit: BoxFit.cover,
+          ),
+          color: Colors.transparent),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: Colors.transparent,
-        title: Text(
-          ' المواريث',
-          style: GoogleFonts.elMessiri(
-              color: Colors.black, fontWeight: FontWeight.bold, fontSize: 25),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          title: Text(
+            ' المواريث',
+            style: GoogleFonts.elMessiri(
+                color: Colors.black, fontWeight: FontWeight.bold, fontSize: 25),
+          ),
+          centerTitle: true,
+          toolbarHeight: 100,
         ),
-        centerTitle: true,toolbarHeight: 100,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        child: Form(
-          key: formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                DropdownButtonFormField<String>(
-                  decoration:  InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(20),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 15),
+          child: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(20),
+                        ),
+                      ),
+                      hintText: 'جنس المتوفى',
+                      label: Text(
+                        "جنس المتوفى",
+                        style: GoogleFonts.elMessiri(
+                            fontSize: 19.0, fontWeight: FontWeight.w600),
                       ),
                     ),
-                    hintText: 'جنس المتوفى',
-                    label: Text(
-                      "جنس المتوفى",
-                      style: GoogleFonts.elMessiri(
-                          fontSize: 19.0, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  value: selectedGender,
-                  items: <String>['ذكر', 'أنثى'].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedGender = newValue;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return null; // قبول القيم الفارغة
-                    }
-                    return null;
-                  },
-
-                ),
-                const SizedBox(height: 25),
-                TextFormField(
-                  controller: amountController,
-                  decoration:  InputDecoration(
-                    filled: true,
-                    enabledBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(20),
-                      ),
-                    ),
-                    fillColor: Colors.white,
-                    border: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(20),
-                      ),
-                    ),
-                    labelText: 'المبلغ الكلي',
-                    labelStyle: GoogleFonts.elMessiri(
-                      fontSize: 19.0, fontWeight: FontWeight.w600// تعديل حجم العنوان هنا
-                    ),
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    final newText = value.replaceAll(',', '');
-                    final number = double.tryParse(newText);
-                    if (number != null) {
-                      amountController.value = TextEditingValue(
-                        text: numberFormat.format(number),
-                        selection: TextSelection.collapsed(
-                            offset: numberFormat.format(number).length),
+                    value: selectedGender,
+                    items: <String>['ذكر', 'أنثى'].map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
                       );
-                    }
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return null; // قبول القيم الفارغة
-                    }
-                    return null;
-                  },
-
-                ),
-
-                const SizedBox(height: 25),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: boysController,
-                        decoration:  InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          labelText: 'عدد الأولاد',
-                          labelStyle: GoogleFonts.elMessiri(
-                              fontSize: 19.0, fontWeight: FontWeight.w600// تعديل حجم العنوان هنا
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return null; // قبول القيم الفارغة
-                          }
-                          return null;
-                        },
-
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: TextFormField(
-                        controller: girlsController,
-                        decoration:  InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          labelText: 'عدد البنات',
-                          labelStyle: GoogleFonts.elMessiri(
-                              fontSize: 19.0, fontWeight: FontWeight.w600// تعديل حجم العنوان هنا
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return null; // قبول القيم الفارغة
-                          }
-                          return null;
-                        },
-
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 25),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: fatherController,
-                        decoration:  InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          labelText: 'الاب',
-                          labelStyle: GoogleFonts.elMessiri(
-                              fontSize: 19.0, fontWeight: FontWeight.w600// تعديل حجم العنوان هنا
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return null; // قبول القيم الفارغة
-                          }
-                          return null;
-                        },
-
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: TextFormField(
-                        controller: motherController,
-                        decoration:  InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          labelText: 'الأم',
-                          labelStyle: GoogleFonts.elMessiri(
-                              fontSize: 19.0, fontWeight: FontWeight.w600// تعديل حجم العنوان هنا
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return null; // قبول القيم الفارغة
-                          }
-                          return null;
-                        },
-
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 25),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: husbandController,
-                        decoration:  InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          labelText: 'عدد الأزواج',
-                          labelStyle: GoogleFonts.elMessiri(
-                              fontSize: 19.0, fontWeight: FontWeight.w600// تعديل حجم العنوان هنا
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return null; // قبول القيم الفارغة
-                          }
-                          return null;
-                        },
-
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: TextFormField(
-                        controller: wifeController,
-                        decoration:  InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          labelText: 'عدد الزوجات',
-                          labelStyle: GoogleFonts.elMessiri(
-                              fontSize: 19.0, fontWeight: FontWeight.w600// تعديل حجم العنوان هنا
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return null; // قبول القيم الفارغة
-                          }
-                          return null;
-                        },
-
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 25),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: brothersController,
-                        decoration:  InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          labelText: 'عدد الأخوة',
-                          labelStyle: GoogleFonts.elMessiri(
-                              fontSize: 19.0, fontWeight: FontWeight.w600// تعديل حجم العنوان هنا
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return null; // قبول القيم الفارغة
-                          }
-                          return null;
-                        },
-
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: TextFormField(
-                        controller: sistersController,
-                        decoration:  InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(20),
-                            ),
-                          ),
-                          labelText: 'عدد الأخوات',
-                          labelStyle: GoogleFonts.elMessiri(
-                              fontSize: 19.0, fontWeight: FontWeight.w600// تعديل حجم العنوان هنا
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return null; // قبول القيم الفارغة
-                          }
-                          return null;
-                        },
-
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 50),
-                ElevatedButton(
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStateProperty.all(Colors.black),
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        selectedGender = newValue;
+                        if (newValue == 'ذكر') {
+                          showHusbandField = false; // إخفاء حقل الزوجة
+                          showWifeField = true;
+                        } else if (newValue == 'أنثى') {
+                          showWifeField = false; // إخفاء حقل الزوج
+                          showHusbandField = true;
+                        }
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "يرجى ادخال جنس المتوفى"; // قبول القيم الفارغة
+                      }
+                      return null;
+                    },
                   ),
-                  onPressed: calculateInheritance,
-                  child: Text(
-                    'احسب الميراث',
-                    style: GoogleFonts.elMessiri(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 25,
+                  const SizedBox(height: 25),
+                  TextFormField(
+                    controller: amountController,
+                    decoration: InputDecoration(
+                      filled: true,
+                      enabledBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(20),
+                        ),
+                      ),
+                      fillColor: Colors.white,
+                      border: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(20),
+                        ),
+                      ),
+                      labelText: 'المبلغ الكلي',
+                      labelStyle: GoogleFonts.elMessiri(
+                          fontSize: 19.0,
+                          fontWeight: FontWeight.w600 // تعديل حجم العنوان هنا
+                          ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      final newText = value.replaceAll(',', '');
+                      final number = double.tryParse(newText);
+                      if (number != null) {
+                        amountController.value = TextEditingValue(
+                          text: numberFormat.format(number),
+                          selection: TextSelection.collapsed(
+                              offset: numberFormat.format(number).length),
+                        );
+                      }
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return null; // قبول القيم الفارغة
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 25),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: boysController,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(20),
+                              ),
+                            ),
+                            labelText: 'عدد الأولاد',
+                            labelStyle: GoogleFonts.elMessiri(
+                                fontSize: 19.0,
+                                fontWeight:
+                                    FontWeight.w600 // تعديل حجم العنوان هنا
+                                ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return null; // قبول القيم الفارغة
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: TextFormField(
+                          controller: girlsController,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(20),
+                              ),
+                            ),
+                            labelText: 'عدد البنات',
+                            labelStyle: GoogleFonts.elMessiri(
+                                fontSize: 19.0,
+                                fontWeight:
+                                    FontWeight.w600 // تعديل حجم العنوان هنا
+                                ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return null; // قبول القيم الفارغة
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 25),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: fatherController,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(20),
+                              ),
+                            ),
+                            labelText: 'أب المتوفى',
+                            labelStyle: GoogleFonts.elMessiri(
+                                fontSize: 19.0,
+                                fontWeight:
+                                    FontWeight.w600 // تعديل حجم العنوان هنا
+                                ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return null; // قبول القيم الفارغة
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: TextFormField(
+                          controller: motherController,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(20),
+                              ),
+                            ),
+                            labelText: 'أم المتوفى',
+                            labelStyle: GoogleFonts.elMessiri(
+                                fontSize: 19.0,
+                                fontWeight:
+                                    FontWeight.w600 // تعديل حجم العنوان هنا
+                                ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return null; // قبول القيم الفارغة
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 25),
+                  Row(
+                    children: [
+                      Visibility(
+                        visible: showHusbandField,
+                        child: Expanded(
+                          child: TextFormField(
+                            controller: husbandController,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: const OutlineInputBorder(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(20),
+                                ),
+                              ),
+                              labelText: 'الزوج',
+                              labelStyle: GoogleFonts.elMessiri(
+                                  fontSize: 19.0,
+                                  fontWeight:
+                                      FontWeight.w600 // تعديل حجم العنوان هنا
+                                  ),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return null; // قبول القيم الفارغة
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ),
+                      Visibility(
+                        visible: showWifeField,
+                        child: Expanded(
+                          child: TextFormField(
+                            controller: wifeController,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: const OutlineInputBorder(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(20),
+                                ),
+                              ),
+                              labelText: 'الزوجة',
+                              labelStyle: GoogleFonts.elMessiri(
+                                  fontSize: 19.0,
+                                  fontWeight:
+                                      FontWeight.w600 // تعديل حجم العنوان هنا
+                                  ),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return null; // قبول القيم الفارغة
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 25),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: brothersController,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(20),
+                              ),
+                            ),
+                            labelText: 'عدد الأخوة للمتوفى',
+                            labelStyle: GoogleFonts.elMessiri(
+                                fontSize: 19.0,
+                                fontWeight:
+                                    FontWeight.w600 // تعديل حجم العنوان هنا
+                                ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return null; // قبول القيم الفارغة
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: TextFormField(
+                          controller: sistersController,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(20),
+                              ),
+                            ),
+                            labelText: 'عدد الأخوات للمتوفى',
+                            labelStyle: GoogleFonts.elMessiri(
+                                fontSize: 19.0,
+                                fontWeight:
+                                    FontWeight.w600 // تعديل حجم العنوان هنا
+                                ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return null; // قبول القيم الفارغة
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 50),
+                  ElevatedButton(
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStateProperty.all(Colors.black),
+                    ),
+                    onPressed: calculateInheritance,
+                    child: Text(
+                      'احسب الميراث',
+                      style: GoogleFonts.elMessiri(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 25,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-              ],
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 
