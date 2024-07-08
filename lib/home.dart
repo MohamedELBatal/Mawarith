@@ -115,8 +115,28 @@ class HomeScreenState extends State<HomeScreen> {
 
           // Calculate shares based on selected gender
           if (selectedGender == 'ذكر') {
-            // حصة الزوجة
-            if (wife > 0) {
+            // حصة الأب
+            if (father > 0) {
+              fatherShare = originalTotalAmount * 0.1667; // السدس
+              remainingAmount -= fatherShare;
+            }
+            // حصة الأم
+            if (mother > 0) {
+              motherShare = originalTotalAmount * 0.1667; // السدس
+              remainingAmount -= motherShare;
+            }
+            if (wife > 0 &&
+                boys == 0 &&
+                girls == 0 &&
+                father == 0 &&
+                mother == 0 &&
+                brothers == 0 &&
+                sisters == 0) {
+              wifeShare =
+                  remainingAmount / wife; // تقسيم المبلغ بالتساوي بين الزوجات
+              remainingAmount =
+                  0; // المبلغ المتبقي بعد تقسيم المبلغ بالتساوي بين الزوجات
+            } else if (wife > 0) {
               if (boys > 0 || girls > 0) {
                 wifeShare = remainingAmount * 0.125; // الثمن
               } else {
@@ -124,16 +144,7 @@ class HomeScreenState extends State<HomeScreen> {
               }
               remainingAmount -= wifeShare;
             }
-            // حصة الأب
-            if (father > 0) {
-              fatherShare = remainingAmount * 0.1667; // السدس
-              remainingAmount -= fatherShare;
-            }
-            // حصة الأم
-            if (mother > 0) {
-              motherShare = remainingAmount * 0.1667; // السدس
-              remainingAmount -= motherShare;
-            }
+
             // توزيع الباقي على الأخوة إذا لم يكن هناك أولاد أو بنات أو زوجة
             if (boys == 0 &&
                 girls == 0 &&
@@ -152,6 +163,16 @@ class HomeScreenState extends State<HomeScreen> {
               wifeShare += remainingAmount;
             }
           } else if (selectedGender == 'أنثى') {
+            // حصة الأب
+            if (father > 0) {
+              fatherShare = originalTotalAmount * 0.1667; // السدس
+              remainingAmount -= fatherShare;
+            }
+            // حصة الأم
+            if (mother > 0) {
+              motherShare = originalTotalAmount * 0.1667; // السدس
+              remainingAmount -= motherShare;
+            }
             // حصة الزوج
             if (husband > 0) {
               if (boys > 0 || girls > 0) {
@@ -161,26 +182,18 @@ class HomeScreenState extends State<HomeScreen> {
               }
               remainingAmount -= husbandShare;
             }
-            // حصة الأب
-            if (father > 0) {
-              fatherShare = remainingAmount * 0.1667; // السدس
-              remainingAmount -= fatherShare;
-            }
-            // حصة الأم
-            if (mother > 0) {
-              motherShare = remainingAmount * 0.1667; // السدس
-              remainingAmount -= motherShare;
-            }
-            if(boys == 0 && girls == 0 && husband > 0 ){
-              husbandShare = remainingAmount ;
+
+            if (boys == 0 && girls == 0 && husband > 0) {
+              husbandShare = remainingAmount;
               husbandShare -= remainingAmount;
-              if(brothers > 0 ){
-              brotherShare = remainingAmount *0.3333;}
-              if( sisters > 0){
-              sisterShare = remainingAmount * 0.1667 ;
-            }
-              if(husband > 0 && brothers == 0 && sisters == 0){
-                husbandShare = remainingAmount ;
+              if (brothers > 0) {
+                brotherShare = remainingAmount * 0.3333;
+              }
+              if (sisters > 0) {
+                sisterShare = remainingAmount * 0.1667;
+              }
+              if (husband > 0 && brothers == 0 && sisters == 0) {
+                husbandShare = remainingAmount;
               }
             }
 
@@ -238,26 +251,36 @@ class HomeScreenState extends State<HomeScreen> {
 
           // Prepare result text
           List<String> resultList = [];
-          if (boyShare > 0)
-            resultList.add('حصة كل ولد : ${(boyShare.toStringAsFixed(1))}');
-          if (girlShare > 0)
-            resultList.add('حصة كل بنت : ${girlShare.toStringAsFixed(1)}');
-          if (fatherShare > 0)
+          if (fatherShare > 0) {
             resultList
                 .add('حصة أب المتوفى : ${fatherShare.toStringAsFixed(1)}');
-          if (motherShare > 0)
+          }
+          if (motherShare > 0) {
             resultList
                 .add('حصة أم المتوفى : ${motherShare.toStringAsFixed(1)}');
-          if (husbandShare > 0)
+          }
+
+          if (boyShare > 0) {
+            resultList.add('حصة كل ولد : ${(boyShare.toStringAsFixed(1))}');
+          }
+          if (girlShare > 0) {
+            resultList.add('حصة كل بنت : ${girlShare.toStringAsFixed(1)}');
+          }
+
+          if (husbandShare > 0) {
             resultList.add('حصة الزوج : ${husbandShare.toStringAsFixed(1)}');
-          if (wifeShare > 0)
+          }
+          if (wifeShare > 0) {
             resultList.add('حصة الزوجة : ${wifeShare.toStringAsFixed(1)}');
-          if (brotherShare > 0)
+          }
+          if (brotherShare > 0) {
             resultList
                 .add('حصة كل أخ للمتوفى : ${brotherShare.toStringAsFixed(1)}');
-          if (sisterShare > 0)
+          }
+          if (sisterShare > 0) {
             resultList
                 .add('حصة كل أخت للمتوفى : ${sisterShare.toStringAsFixed(1)}');
+          }
 
           String result = resultList.join('\n');
 
